@@ -1,8 +1,8 @@
 """
-Demo light platform that implements lights.
+Platform for Caseta lights.
 
 For more details about this platform, please refer to the documentation
-https://home-assistant.io/components/demo/
+https://home-assistant.io/components/light.caseta/
 """
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS, SUPPORT_BRIGHTNESS, Light, PLATFORM_SCHEMA)
@@ -61,7 +61,7 @@ class CasetaData:
                         _LOGGER.info("Found device, updating value")
                         device._update_state(value)
                         yield from device.async_update_ha_state()
-                        break
+                    break
         except:
             logging.exception('')
         self._hass.loop.create_task(self.readOutput())
@@ -137,4 +137,3 @@ class CasetaLight(Light):
         """Update brightness value."""
         self._brightness = brightness
         self._is_on = brightness > 0
-        #self.update_ha_state()
