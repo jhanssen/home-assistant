@@ -25,7 +25,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
             vol.Optional(CONF_TYPE, default=DEFAULT_TYPE): vol.In(['dimmer', 'switch']),
         }
     ]),
-    vol.Optional(CONF_HOST, default=None): cv.string,
+    vol.Required(CONF_HOST): cv.string,
 })
 
 _LOGGER = logging.getLogger(__name__)

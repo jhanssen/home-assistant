@@ -22,7 +22,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
             vol.Required(CONF_NAME): cv.string,
         }
     ]),
-    vol.Optional(CONF_HOST, default=None): cv.string,
+    vol.Required(CONF_HOST): cv.string,
 })
 
 _LOGGER = logging.getLogger(__name__)
