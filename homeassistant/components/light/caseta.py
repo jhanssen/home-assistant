@@ -47,9 +47,9 @@ class CasetaData:
     @asyncio.coroutine
     def readOutput(self, mode, integration, action, value):
         try:
-            _LOGGER.info("Got light caseta value: %s %d %d %f", mode, integration, action, value)
             # find integration in devices
             if mode == caseta.Caseta.OUTPUT:
+                _LOGGER.info("Got light caseta value: %s %d %d %f", mode, integration, action, value)
                 for device in self._devices:
                     if device.integration == integration:
                         if action == caseta.Caseta.Action.SET:
@@ -57,8 +57,6 @@ class CasetaData:
                             device._update_state(value)
                             yield from device.async_update_ha_state()
                             break
-            elif mode == caseta.Caseta.DEVICE:
-                _LOGGER.info("Trigger device")
         except:
             logging.exception('')
 
