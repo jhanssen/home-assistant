@@ -5,7 +5,7 @@ from enum import IntEnum
 READ_SIZE = 1024
 DEFAULT_USER = b"lutron"
 DEFAULT_PASSWORD = b"integration"
-CASETA_RE = re.compile(b"~([A-Z]+),([^,\r\n]+),([^,\r\n]+),([^\r\n]+)\r\n")
+CASETA_RE = re.compile(b"~([A-Z]+),([0-9.]+),([0-9.]+),([0-9.]+)\r\n")
 
 class Casetify:
     """Async class to communicate with Lutron Caseta"""
