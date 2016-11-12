@@ -9,11 +9,12 @@ from homeassistant.components.light import (
 from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST)
 import homeassistant.helpers.config_validation as cv
 
+from homeassistant.components import caseta
+
 import voluptuous as vol
 import asyncio
 import logging
 
-ACTION_SET = 1
 SUPPORT_CASETA = SUPPORT_BRIGHTNESS
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [
@@ -28,9 +29,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 _LOGGER = logging.getLogger(__name__)
 
 class CasetaData:
-    def __init__(self, casetify, hass):
-        self._casetify = casetify
-        self._hass = hass
+    def __init__(self, caseta):
+        self._caseta = caseta
         self._devices = []
 
     @property
@@ -38,48 +38,43 @@ class CasetaData:
         return self._devices
 
     @property
-    def casetify(self):
-        return self._casetify
-
-    @property
-    def hass(self):
-        return self._hass
+    def caseta(self):
+        return self._caseta
 
     def setDevices(self, devices):
         self._devices = devices
 
     @asyncio.coroutine
-    def readOutput(self):
-        _LOGGER.info("Reading caseta value.")
+    def readOutput(self, mode, integration, action, value):
         try:
-            integration, action, value = yield from self._casetify.readOutput()
-            _LOGGER.info("Read caseta value: %d %d %f", integration, action, value)
+            _LOGGER.info("Got light caseta value: %s %d %d %f", mode, integration, action, value)
             # find integration in devices
-            for device in self._devices:
-                if device.integration == integration:
-                    if action == ACTION_SET:
-                        _LOGGER.info("Found device, updating value")
-                        device._update_state(value)
-                        yield from device.async_update_ha_state()
-                    break
+            if mode == caseta.Caseta.OUTPUT:
+                for device in self._devices:
+                    if device.integration == integration:
+                        if action == caseta.Caseta.Action.SET:
+                            _LOGGER.info("Found device, updating value")
+                            device._update_state(value)
+                            yield from device.async_update_ha_state()
+                            break
+            elif mode == caseta.Caseta.DEVICE:
+                _LOGGER.info("Trigger device")
         except:
             logging.exception('')
-        self._hass.loop.create_task(self.readOutput())
 
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Setup the platform."""
-    from casetify import Casetify
-    caseta = Casetify()
+    bridge = caseta.Caseta(config[CONF_HOST])
+    yield from bridge.open()
 
-    yield from caseta.open(config[CONF_HOST])
-
-    data = CasetaData(caseta, hass)
+    data = CasetaData(bridge)
     devices = [CasetaLight(light, data) for light in config[CONF_DEVICES]]
     data.setDevices(devices)
 
     yield from async_add_devices(devices)
 
-    hass.loop.create_task(data.readOutput())
+    bridge.register(data.readOutput)
+    bridge.start(hass)
 
     return True
 
@@ -94,7 +89,7 @@ class CasetaLight(Light):
         self._is_on = False
         self._brightness = 0
 
-        self._data.casetify.queryOutput(self._integration, ACTION_SET)
+        self._data.caseta.query(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET)
 
     @property
     def integration(self):
@@ -125,13 +120,13 @@ class CasetaLight(Light):
         value = 100
         if ATTR_BRIGHTNESS in kwargs:
             value = (kwargs[ATTR_BRIGHTNESS] / 255) * 100
-        _LOGGER.info("Writing caseta value: %d %d %d", self._integration, ACTION_SET, value)
-        self._data.casetify.writeOutput(self._integration, ACTION_SET, value)
+        _LOGGER.info("Writing caseta value: %d %d %d", self._integration, caseta.Caseta.Action.SET, value)
+        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value)
 
     def turn_off(self, **kwargs):
         """Instruct the light to turn off."""
-        _LOGGER.info("Writing caseta value: %d %d off", self._integration, ACTION_SET)
-        self._data.casetify.writeOutput(self._integration, ACTION_SET, 0)
+        _LOGGER.info("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
+        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
 
     def _update_state(self, brightness):
         """Update brightness value."""
