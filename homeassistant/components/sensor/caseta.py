@@ -1,8 +1,8 @@
 """
-Platform for Caseta lights.
+Platform for Caseta sensor.
 
 For more details about this platform, please refer to the documentation
-https://home-assistant.io/components/light.caseta/
+https://home-assistant.io/components/sensor.caseta/
 """
 from homeassistant.helpers.entity import Entity
 from homeassistant.components.sensor import PLATFORM_SCHEMA
