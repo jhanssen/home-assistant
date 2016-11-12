@@ -1,12 +1,11 @@
 """
-Platform for Caseta lights.
+Platform for Caseta switches.
 
 For more details about this platform, please refer to the documentation
-https://home-assistant.io/components/light.caseta/
+https://home-assistant.io/components/switch.caseta/
 """
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS, SUPPORT_BRIGHTNESS, Light, PLATFORM_SCHEMA)
-from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST, CONF_TYPE)
+from homeassistant.components.switch import (SwitchDevice, PLATFORM_SCHEMA)
+from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST)
 import homeassistant.helpers.config_validation as cv
 
 from homeassistant.components import caseta
@@ -15,14 +14,11 @@ import voluptuous as vol
 import asyncio
 import logging
 
-DEFAULT_TYPE = "dimmer"
-
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [
         {
             vol.Required(CONF_ID): cv.positive_int,
             vol.Required(CONF_NAME): cv.string,
-            vol.Optional(CONF_TYPE, default=DEFAULT_TYPE): vol.In(['dimmer', 'switch']),
         }
     ]),
     vol.Optional(CONF_HOST, default=None): cv.string,
@@ -51,7 +47,7 @@ class CasetaData:
         try:
             # find integration in devices
             if mode == caseta.Caseta.OUTPUT:
-                _LOGGER.info("Got light caseta value: %s %d %d %f", mode, integration, action, value)
+                _LOGGER.info("Got switch caseta value: %s %d %d %f", mode, integration, action, value)
                 for device in self._devices:
                     if device.integration == integration:
                         if action == caseta.Caseta.Action.SET:
@@ -68,7 +64,7 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     yield from bridge.open()
 
     data = CasetaData(bridge)
-    devices = [CasetaLight(light, data) for light in config[CONF_DEVICES]]
+    devices = [CasetaSwitch(switch, data) for switch in config[CONF_DEVICES]]
     data.setDevices(devices)
 
     yield from async_add_devices(devices)
@@ -78,17 +74,15 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
 
     return True
 
-class CasetaLight(Light):
-    """Representation of a Caseta Light."""
+class CasetaSwitch(SwitchDevice):
+    """Representation of a Caseta Switch."""
 
-    def __init__(self, light, data):
-        """Initialize a Caseta Light."""
+    def __init__(self, switch, data):
+        """Initialize a Caseta Switch."""
         self._data = data
-        self._name = light["name"]
-        self._integration = int(light["id"])
-        self._is_dimmer = light["type"] == "dimmer"
+        self._name = switch['name']
+        self._integration = int(switch['id'])
         self._is_on = False
-        self._brightness = 0
 
         self._data.caseta.query(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET)
 
@@ -98,39 +92,24 @@ class CasetaLight(Light):
 
     @property
     def name(self):
-        """Return the display name of this light."""
+        """Return the display name of this switch."""
         return self._name
 
     @property
-    def brightness(self):
-        """Brightness of the light (an integer in the range 1-255)."""
-        return (self._brightness / 100) * 255
-
-    @property
     def is_on(self):
-        """Return true if light is on."""
+        """Return true if switch is on."""
         return self._is_on
 
-    @property
-    def supported_features(self):
-        """Flag supported features."""
-        return SUPPORT_BRIGHTNESS if self._is_dimmer else 0
-
     def turn_on(self, **kwargs):
-        """Instruct the light to turn on."""
-        value = 100
-        if self._is_dimmer and ATTR_BRIGHTNESS in kwargs:
-            value = (kwargs[ATTR_BRIGHTNESS] / 255) * 100
-        _LOGGER.info("Writing caseta value: %d %d %d", self._integration, caseta.Caseta.Action.SET, value)
-        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value)
+        """Instruct the switch to turn on."""
+        _LOGGER.info("Writing caseta value: %d %d on", self._integration, caseta.Caseta.Action.SET)
+        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 100)
 
     def turn_off(self, **kwargs):
-        """Instruct the light to turn off."""
+        """Instruct the swtich to turn off."""
         _LOGGER.info("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
         self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
 
-    def _update_state(self, brightness):
-        """Update brightness value."""
-        if self._is_dimmer:
-            self._brightness = brightness
-        self._is_on = brightness > 0
+    def _update_state(self, value):
+        """Update state."""
+        self._is_on = value > 0
