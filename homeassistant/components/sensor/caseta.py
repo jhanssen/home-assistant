@@ -28,9 +28,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 _LOGGER = logging.getLogger(__name__)
 
 class CasetaData:
-    def __init__(self, caseta):
+    def __init__(self, caseta, hass):
         self._caseta = caseta
+        self._hass = hass
         self._devices = []
+        self._added = {}
+        self._later = None
 
     @property
     def devices(self):
@@ -42,6 +45,20 @@ class CasetaData:
 
     def setDevices(self, devices):
         self._devices = devices
+
+    @asyncio.coroutine
+    def _checkAdded(self):
+        yield from asyncio.sleep(5)
+        _LOGGER.info("Checking caseta added")
+        for integration in self._added:
+            _LOGGER.info("Removing caseta added %d %d", integration, self._added[integration])
+            for device in self._devices:
+                if device.integration == integration:
+                    device._update_state(device.state & ~self._added[integration])
+                    yield from device.async_update_ha_state()
+                    _LOGGER.info("Removed caseta added %d %d", integration, self._added[integration])
+                    break
+        self._added.clear()
 
     @asyncio.coroutine
     def readOutput(self, mode, integration, action, value):
@@ -68,10 +85,20 @@ class CasetaData:
                         if value == caseta.Caseta.Button.DOWN:
                             _LOGGER.info("Found device, updating value, down")
                             device._update_state(device.state | state)
+                            if integration in self._added:
+                                self._added[integration] |= state
+                            else:
+                                self._added[integration] = state
+                            if self._later != None:
+                                self._later.cancel()
+                            _LOGGER.info("scheduling call later")
+                            self._later = self._hass.loop.create_task(self._checkAdded())
                             yield from device.async_update_ha_state()
                         elif value == caseta.Caseta.Button.UP:
                             _LOGGER.info("Found device, updating value, up")
                             device._update_state(device.state & ~state)
+                            if integration in self._added:
+                                self._added[integration] &= ~state
                             yield from device.async_update_ha_state()
                         break
         except:
@@ -82,7 +109,7 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     bridge = caseta.Caseta(config[CONF_HOST])
     yield from bridge.open()
 
-    data = CasetaData(bridge)
+    data = CasetaData(bridge, hass)
     devices = [CasetaPicoRemote(pico, data) for pico in config[CONF_DEVICES]]
     data.setDevices(devices)
 
