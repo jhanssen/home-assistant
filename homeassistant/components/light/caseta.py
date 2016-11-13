@@ -73,6 +73,9 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     devices = [CasetaLight(light, data) for light in discovery_info[CONF_DEVICES]]
     data.setDevices(devices)
 
+    for device in devices:
+        yield from device.query()
+
     yield from async_add_devices(devices)
 
     bridge.register(data.readOutput)
@@ -92,7 +95,9 @@ class CasetaLight(Light):
         self._is_on = False
         self._brightness = 0
 
-        self._data.caseta.query(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET)
+    @asyncio.coroutine
+    def query(self):
+        yield from self._data.caseta.query(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET)
 
     @property
     def integration(self):
@@ -118,18 +123,18 @@ class CasetaLight(Light):
         """Flag supported features."""
         return SUPPORT_BRIGHTNESS if self._is_dimmer else 0
 
-    def turn_on(self, **kwargs):
+    def async_turn_on(self, **kwargs):
         """Instruct the light to turn on."""
         value = 100
         if self._is_dimmer and ATTR_BRIGHTNESS in kwargs:
             value = (kwargs[ATTR_BRIGHTNESS] / 255) * 100
         _LOGGER.info("Writing caseta value: %d %d %d", self._integration, caseta.Caseta.Action.SET, value)
-        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value)
+        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value)
 
-    def turn_off(self, **kwargs):
+    def async_turn_off(self, **kwargs):
         """Instruct the light to turn off."""
         _LOGGER.info("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
-        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
+        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
 
     def _update_state(self, brightness):
         """Update brightness value."""

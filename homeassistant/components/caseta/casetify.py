@@ -24,16 +24,18 @@ class Casetify:
     def __init__(self):
         self._readbuffer = b""
         self._readlock = asyncio.Lock()
+        self._writelock = asyncio.Lock()
 
     @asyncio.coroutine
     def open(self, host, port=23, username=DEFAULT_USER, password=DEFAULT_PASSWORD):
         with (yield from self._readlock):
-            self.reader, self.writer = yield from asyncio.open_connection(host, port, loop=Casetify.loop)
-            yield from self._readuntil(b"login: ")
-            self.writer.write(username + b"\r\n")
-            yield from self._readuntil(b"password: ")
-            self.writer.write(password + b"\r\n")
-            yield from self._readuntil(b"GNET> ")
+            with (yield from self._writelock):
+                self.reader, self.writer = yield from asyncio.open_connection(host, port, loop=Casetify.loop)
+                yield from self._readuntil(b"login: ")
+                self.writer.write(username + b"\r\n")
+                yield from self._readuntil(b"password: ")
+                self.writer.write(password + b"\r\n")
+                yield from self._readuntil(b"GNET> ")
 
     @asyncio.coroutine
     def _readuntil(self, value):
@@ -61,12 +63,21 @@ class Casetify:
             except:
                 print("exception in ", match.group(0))
 
+    @asyncio.coroutine
     def write(self, mode, integration, action, value):
         if hasattr(action, "value"):
             action = action.value
-        self.writer.write("#{},{},{},{}\r\n".format(mode, integration, action, value).encode())
+        with (yield from self._writelock):
+            self.writer.write("#{},{},{},{}\r\n".format(mode, integration, action, value).encode())
 
+    @asyncio.coroutine
     def query(self, mode, integration, action):
         if hasattr(action, "value"):
             action = action.value
-        self.writer.write("?{},{},{}\r\n".format(mode, integration, action).encode())
+        with (yield from self._writelock):
+            self.writer.write("?{},{},{}\r\n".format(mode, integration, action).encode())
+
+    @asyncio.coroutine
+    def ping(self):
+        with (yield from self._writelock):
+            self.writer.write("?SYSTEM,10\r\n")
