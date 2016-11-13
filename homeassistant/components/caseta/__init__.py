@@ -140,6 +140,10 @@ class Caseta:
             try:
                 _LOGGER.info("Reading caseta for host %s", self._host)
                 mode, integration, action, value = yield from self._casetify.read()
+                if mode == None:
+                    _LOGGER.info("Read no values from casetify")
+                    self._hass.loop.create_task(self._readNext())
+                    return
                 _LOGGER.info("Read caseta for host %s: %s %d %d %f", self._host, mode, integration, action, value)
                 # walk callbacks
                 for callback in self._callbacks:
