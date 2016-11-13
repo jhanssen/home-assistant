@@ -168,10 +168,10 @@ class Caseta:
             return True
 
         @asyncio.coroutine
-        def write(self, mode, integration, action, value):
+        def write(self, mode, integration, action, value, *args):
             if self._casetify == None:
                 return False
-            yield from self._casetify.write(mode, integration, action, value)
+            yield from self._casetify.write(mode, integration, action, value, *args)
             return True
 
         @asyncio.coroutine

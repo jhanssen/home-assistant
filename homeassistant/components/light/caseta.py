@@ -5,7 +5,7 @@ For more details about this platform, please refer to the documentation
 https://home-assistant.io/components/light.caseta/
 """
 from homeassistant.components.light import (
-    ATTR_BRIGHTNESS, SUPPORT_BRIGHTNESS, Light, PLATFORM_SCHEMA)
+    ATTR_BRIGHTNESS, ATTR_TRANSITION, SUPPORT_BRIGHTNESS, SUPPORT_TRANSITION, Light, PLATFORM_SCHEMA)
 from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST, CONF_TYPE)
 import homeassistant.helpers.config_validation as cv
 
@@ -121,20 +121,28 @@ class CasetaLight(Light):
     @property
     def supported_features(self):
         """Flag supported features."""
-        return SUPPORT_BRIGHTNESS if self._is_dimmer else 0
+        return (SUPPORT_BRIGHTNESS | SUPPORT_TRANSITION) if self._is_dimmer else 0
 
     def async_turn_on(self, **kwargs):
         """Instruct the light to turn on."""
         value = 100
-        if self._is_dimmer and ATTR_BRIGHTNESS in kwargs:
-            value = (kwargs[ATTR_BRIGHTNESS] / 255) * 100
-        _LOGGER.debug("Writing caseta value: %d %d %d", self._integration, caseta.Caseta.Action.SET, value)
-        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value)
+        transition = None
+        if self._is_dimmer:
+            if ATTR_BRIGHTNESS in kwargs:
+                value = (kwargs[ATTR_BRIGHTNESS] / 255) * 100
+            if ATTR_TRANSITION in kwargs:
+                transition = ":" + str(kwargs[ATTR_TRANSITION])
+        _LOGGER.debug("Writing caseta value: %d %d %d %s", self._integration, caseta.Caseta.Action.SET, value, str(transition))
+        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value, transition)
 
     def async_turn_off(self, **kwargs):
         """Instruct the light to turn off."""
-        _LOGGER.debug("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
-        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
+        transition = None
+        if self._is_dimmer:
+            if ATTR_TRANSITION in kwargs:
+                transition = ":" + str(kwargs[ATTR_TRANSITION])
+        _LOGGER.debug("Writing caseta value: %d %d off %s", self._integration, caseta.Caseta.Action.SET, str(transition))
+        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0, transition)
 
     def _update_state(self, brightness):
         """Update brightness value."""
