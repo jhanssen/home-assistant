@@ -47,11 +47,11 @@ class CasetaData:
         try:
             # find integration in devices
             if mode == caseta.Caseta.OUTPUT:
-                _LOGGER.info("Got switch caseta value: %s %d %d %f", mode, integration, action, value)
+                _LOGGER.debug("Got switch caseta value: %s %d %d %f", mode, integration, action, value)
                 for device in self._devices:
                     if device.integration == integration:
                         if action == caseta.Caseta.Action.SET:
-                            _LOGGER.info("Found device, updating value")
+                            _LOGGER.info("Found switch device, updating value")
                             device._update_state(value)
                             yield from device.async_update_ha_state()
                             break
@@ -110,13 +110,13 @@ class CasetaSwitch(SwitchDevice):
     @asyncio.coroutine
     def async_turn_on(self, **kwargs):
         """Instruct the switch to turn on."""
-        _LOGGER.info("Writing caseta value: %d %d on", self._integration, caseta.Caseta.Action.SET)
+        _LOGGER.debug("Writing caseta value: %d %d on", self._integration, caseta.Caseta.Action.SET)
         yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 100)
 
     @asyncio.coroutine
     def async_turn_off(self, **kwargs):
         """Instruct the swtich to turn off."""
-        _LOGGER.info("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
+        _LOGGER.debug("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
         yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
 
     def _update_state(self, value):
