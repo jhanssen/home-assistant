@@ -82,7 +82,7 @@ def setup(hass, config):
             types = { "remote": [], "switch": [], "dimmer": [] }
             for device in devices:
                 types[device["type"]].append(device)
-            print(types)
+            # print(types)
 
             # run discovery per type
             for t in types:
