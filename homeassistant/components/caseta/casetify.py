@@ -96,13 +96,17 @@ class Casetify:
         return None, None, None, None
 
     @asyncio.coroutine
-    def write(self, mode, integration, action, value):
+    def write(self, mode, integration, action, value, *args):
         if hasattr(action, "value"):
             action = action.value
         with (yield from self._writelock):
             if self._state != Casetify.State.Opened:
                 return
-            self.writer.write("#{},{},{},{}\r\n".format(mode, integration, action, value).encode())
+            data = "#{},{},{},{}".format(mode, integration, action, value)
+            for arg in args:
+                if arg != None:
+                    data += ",{}".format(arg)
+            self.writer.write((data + "\r\n").encode())
 
     @asyncio.coroutine
     def query(self, mode, integration, action):
