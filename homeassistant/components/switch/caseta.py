@@ -60,11 +60,13 @@ class CasetaData:
 
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Setup the platform."""
-    bridge = caseta.Caseta(config[CONF_HOST])
+    if discovery_info == None:
+        return
+    bridge = caseta.Caseta(discovery_info[CONF_HOST])
     yield from bridge.open()
 
     data = CasetaData(bridge)
-    devices = [CasetaSwitch(switch, data) for switch in config[CONF_DEVICES]]
+    devices = [CasetaSwitch(switch, data) for switch in discovery_info[CONF_DEVICES]]
     data.setDevices(devices)
 
     yield from async_add_devices(devices)
