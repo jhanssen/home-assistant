@@ -2,8 +2,103 @@ from . import casetify
 import asyncio
 import weakref
 import logging
+import voluptuous as vol
+import os.path
+import json
+
+from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST, CONF_TYPE)
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import discovery
 
 _LOGGER = logging.getLogger(__name__)
+
+DOMAIN = "caseta"
+
+CONF_BUTTONS = "buttons"
+CONF_BRIDGES = "bridges"
+CONF_INTEGRATION = "integration"
+DEFAULT_TYPE = "dimmer"
+
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Required(CONF_BRIDGES): vol.All(cv.ensure_list, [
+            {
+                vol.Required(CONF_HOST): cv.string,
+                vol.Optional(CONF_DEVICES): vol.All(cv.ensure_list, [
+                    {
+                        vol.Required(CONF_ID): cv.positive_int,
+                        vol.Optional(CONF_NAME): cv.string,
+                        vol.Optional(CONF_TYPE, default=DEFAULT_TYPE): vol.In(['dimmer', 'switch', 'remote']),
+                    }
+                ]),
+                vol.Optional(CONF_INTEGRATION): cv.string,
+            }
+        ]),
+    }),
+}, extra=vol.ALLOW_EXTRA)
+
+def setup(hass, config):
+    # read integration report, caseta_HOST.json
+    if CONF_BRIDGES in config[DOMAIN]:
+        for bridge in config[DOMAIN][CONF_BRIDGES]:
+            devices = []
+            fname = os.path.join(hass.config.config_dir, "caseta_" + bridge[CONF_HOST] + ".json")
+            _LOGGER.info("loading %s", fname)
+            with open(fname, encoding='utf-8') as conf_file:
+                integration = json.load(conf_file)
+                # print(integration)
+                if "LIPIdList" in integration:
+                    # lights and switches are in Zones
+                    if "Zones" in integration["LIPIdList"]:
+                        for zone in integration["LIPIdList"]["Zones"]:
+                            # print(zone)
+                            devices.append({CONF_ID: zone["ID"],
+                                            CONF_NAME: zone["Name"],
+                                            CONF_TYPE: "dimmer"})
+                    # remotes are in Devices, except ID 1 which is the bridge itself
+                    if "Devices" in integration["LIPIdList"]:
+                        for device in integration["LIPIdList"]["Devices"]:
+                            # print(device)
+                            if device["ID"] != 1 and "Buttons" in device:
+                                devices.append({CONF_ID: device["ID"],
+                                                CONF_NAME: device["Name"],
+                                                CONF_TYPE: "remote",
+                                                CONF_BUTTONS: device["Buttons"]})
+            # patch up integration with devices
+            if CONF_DEVICES in bridge:
+                for device in bridge[CONF_DEVICES]:
+                    found = False
+                    for existing in devices:
+                        if device[CONF_ID] == existing[CONF_ID]:
+                            for k in device:
+                                existing[k] = device[k]
+                            found = True
+                            break
+                    if not found:
+                        devices.append(device)
+            _LOGGER.info("patched %s", devices)
+
+            # sort devices based on device types
+            types = { "remote": [], "switch": [], "dimmer": [] }
+            for device in devices:
+                types[device["type"]].append(device)
+            print(types)
+
+            # run discovery per type
+            for t in types:
+                component = t
+                if component == "dimmer":
+                    component = "light"
+                if component == "remote":
+                    component = "sensor"
+                discovery.load_platform(hass,
+                                        component,
+                                        DOMAIN,
+                                        { CONF_HOST: bridge[CONF_HOST],
+                                          CONF_DEVICES: types[t] },
+                                        config)
+
+    return True
 
 class Caseta:
     class __Callback(object):
