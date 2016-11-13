@@ -51,11 +51,11 @@ class CasetaData:
         try:
             # find integration in devices
             if mode == caseta.Caseta.OUTPUT:
-                _LOGGER.info("Got light caseta value: %s %d %d %f", mode, integration, action, value)
+                _LOGGER.debug("Got light caseta value: %s %d %d %f", mode, integration, action, value)
                 for device in self._devices:
                     if device.integration == integration:
                         if action == caseta.Caseta.Action.SET:
-                            _LOGGER.info("Found device, updating value")
+                            _LOGGER.info("Found light device, updating value")
                             device._update_state(value)
                             yield from device.async_update_ha_state()
                             break
@@ -128,12 +128,12 @@ class CasetaLight(Light):
         value = 100
         if self._is_dimmer and ATTR_BRIGHTNESS in kwargs:
             value = (kwargs[ATTR_BRIGHTNESS] / 255) * 100
-        _LOGGER.info("Writing caseta value: %d %d %d", self._integration, caseta.Caseta.Action.SET, value)
+        _LOGGER.debug("Writing caseta value: %d %d %d", self._integration, caseta.Caseta.Action.SET, value)
         yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, value)
 
     def async_turn_off(self, **kwargs):
         """Instruct the light to turn off."""
-        _LOGGER.info("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
+        _LOGGER.debug("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
         yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
 
     def _update_state(self, brightness):

@@ -43,7 +43,7 @@ def setup(hass, config):
         for bridge in config[DOMAIN][CONF_BRIDGES]:
             devices = []
             fname = os.path.join(hass.config.config_dir, "caseta_" + bridge[CONF_HOST] + ".json")
-            _LOGGER.info("loading %s", fname)
+            _LOGGER.debug("loading %s", fname)
             with open(fname, encoding='utf-8') as conf_file:
                 integration = json.load(conf_file)
                 # print(integration)
@@ -76,7 +76,7 @@ def setup(hass, config):
                             break
                     if not found:
                         devices.append(device)
-            _LOGGER.info("patched %s", devices)
+            _LOGGER.debug("patched %s", devices)
 
             # sort devices based on device types
             types = { "remote": [], "switch": [], "dimmer": [] }
@@ -112,10 +112,8 @@ class Caseta:
 
         @asyncio.coroutine
         def call(self, *args, **kwargs):
-            _LOGGER.info("Getting weak callback")
             obj = self.wref()
             if obj:
-                _LOGGER.info("Got weak callback")
                 attr = getattr(obj, self.callback_attr)
                 yield from attr(*args, **kwargs)
 
@@ -138,16 +136,16 @@ class Caseta:
         @asyncio.coroutine
         def _readNext(self):
             try:
-                _LOGGER.info("Reading caseta for host %s", self._host)
+                _LOGGER.debug("Reading caseta for host %s", self._host)
                 mode, integration, action, value = yield from self._casetify.read()
                 if mode == None:
-                    _LOGGER.info("Read no values from casetify")
+                    _LOGGER.debug("Read no values from casetify")
                     self._hass.loop.create_task(self._readNext())
                     return
-                _LOGGER.info("Read caseta for host %s: %s %d %d %f", self._host, mode, integration, action, value)
+                _LOGGER.debug("Read caseta for host %s: %s %d %d %f", self._host, mode, integration, action, value)
                 # walk callbacks
                 for callback in self._callbacks:
-                    _LOGGER.info("Invoking callback for host %s", self._host)
+                    _LOGGER.debug("Invoking callback for host %s", self._host)
                     yield from callback.call(mode, integration, action, value)
             except:
                 logging.exception('')
@@ -161,7 +159,7 @@ class Caseta:
 
         @asyncio.coroutine
         def open(self):
-            _LOGGER.info("Opening caseta for host %s", self._host)
+            _LOGGER.debug("Opening caseta for host %s", self._host)
             if self._casetify != None:
                 return True
             _LOGGER.info("Opened caseta for host %s", self._host)
@@ -187,7 +185,7 @@ class Caseta:
             self._callbacks.append(Caseta.__Callback(callback))
 
         def start(self, hass):
-            _LOGGER.info("Starting caseta for host %s", self._host)
+            _LOGGER.debug("Starting caseta for host %s", self._host)
             if self._hass == None:
                 self._hass = hass
                 hass.loop.create_task(self._readNext())
