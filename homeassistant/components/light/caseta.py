@@ -48,19 +48,16 @@ class CasetaData:
 
     @asyncio.coroutine
     def readOutput(self, mode, integration, action, value):
-        try:
-            # find integration in devices
-            if mode == caseta.Caseta.OUTPUT:
-                _LOGGER.debug("Got light caseta value: %s %d %d %f", mode, integration, action, value)
-                for device in self._devices:
-                    if device.integration == integration:
-                        if action == caseta.Caseta.Action.SET:
-                            _LOGGER.info("Found light device, updating value")
-                            device._update_state(value)
-                            yield from device.async_update_ha_state()
-                            break
-        except:
-            logging.exception('')
+        # find integration in devices
+        if mode == caseta.Caseta.OUTPUT:
+            _LOGGER.debug("Got light caseta value: %s %d %d %f", mode, integration, action, value)
+            for device in self._devices:
+                if device.integration == integration:
+                    if action == caseta.Caseta.Action.SET:
+                        _LOGGER.info("Found light device, updating value")
+                        device._update_state(value)
+                        yield from device.async_update_ha_state()
+                        break
 
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Setup the platform."""

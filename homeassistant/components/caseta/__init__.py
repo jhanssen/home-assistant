@@ -135,20 +135,17 @@ class Caseta:
 
         @asyncio.coroutine
         def _readNext(self):
-            try:
-                _LOGGER.debug("Reading caseta for host %s", self._host)
-                mode, integration, action, value = yield from self._casetify.read()
-                if mode == None:
-                    _LOGGER.debug("Read no values from casetify")
-                    self._hass.loop.create_task(self._readNext())
-                    return
-                _LOGGER.debug("Read caseta for host %s: %s %d %d %f", self._host, mode, integration, action, value)
-                # walk callbacks
-                for callback in self._callbacks:
-                    _LOGGER.debug("Invoking callback for host %s", self._host)
-                    yield from callback.call(mode, integration, action, value)
-            except:
-                logging.exception('')
+            _LOGGER.debug("Reading caseta for host %s", self._host)
+            mode, integration, action, value = yield from self._casetify.read()
+            if mode == None:
+                _LOGGER.debug("Read no values from casetify")
+                self._hass.loop.create_task(self._readNext())
+                return
+            _LOGGER.debug("Read caseta for host %s: %s %d %d %f", self._host, mode, integration, action, value)
+            # walk callbacks
+            for callback in self._callbacks:
+                _LOGGER.debug("Invoking callback for host %s", self._host)
+                yield from callback.call(mode, integration, action, value)
             self._hass.loop.create_task(self._readNext())
 
         @asyncio.coroutine

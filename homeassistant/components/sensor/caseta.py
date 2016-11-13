@@ -62,35 +62,32 @@ class CasetaData:
 
     @asyncio.coroutine
     def readOutput(self, mode, integration, action, value):
-        try:
-            # find integration in devices
-            if mode == caseta.Caseta.DEVICE:
-                _LOGGER.debug("Got sensor caseta value: %s %d %d %f", mode, integration, action, value)
-                for device in self._devices:
-                    if device.integration == integration:
-                        state = 1 << action - device.minbutton
-                        _LOGGER.debug("Found device, updating value")
-                        if value == caseta.Caseta.Button.DOWN:
-                            _LOGGER.info("Found sensor device, updating value, down")
-                            device._update_state(device.state | state)
-                            if integration in self._added:
-                                self._added[integration] |= state
-                            else:
-                                self._added[integration] = state
-                            if self._later != None:
-                                self._later.cancel()
-                            _LOGGER.debug("scheduling call later")
-                            self._later = self._hass.loop.create_task(self._checkAdded())
-                            yield from device.async_update_ha_state()
-                        elif value == caseta.Caseta.Button.UP:
-                            _LOGGER.info("Found sensor device, updating value, up")
-                            device._update_state(device.state & ~state)
-                            if integration in self._added:
-                                self._added[integration] &= ~state
-                            yield from device.async_update_ha_state()
-                        break
-        except:
-            logging.exception('')
+        # find integration in devices
+        if mode == caseta.Caseta.DEVICE:
+            _LOGGER.debug("Got sensor caseta value: %s %d %d %f", mode, integration, action, value)
+            for device in self._devices:
+                if device.integration == integration:
+                    state = 1 << action - device.minbutton
+                    _LOGGER.debug("Found device, updating value")
+                    if value == caseta.Caseta.Button.DOWN:
+                        _LOGGER.info("Found sensor device, updating value, down")
+                        device._update_state(device.state | state)
+                        if integration in self._added:
+                            self._added[integration] |= state
+                        else:
+                            self._added[integration] = state
+                        if self._later != None:
+                            self._later.cancel()
+                        _LOGGER.debug("scheduling call later")
+                        self._later = self._hass.loop.create_task(self._checkAdded())
+                        yield from device.async_update_ha_state()
+                    elif value == caseta.Caseta.Button.UP:
+                        _LOGGER.info("Found sensor device, updating value, up")
+                        device._update_state(device.state & ~state)
+                        if integration in self._added:
+                            self._added[integration] &= ~state
+                        yield from device.async_update_ha_state()
+                    break
 
 def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Setup the platform."""
