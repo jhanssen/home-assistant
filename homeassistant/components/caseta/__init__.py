@@ -16,7 +16,6 @@ DOMAIN = "caseta"
 
 CONF_BUTTONS = "buttons"
 CONF_BRIDGES = "bridges"
-CONF_INTEGRATION = "integration"
 DEFAULT_TYPE = "dimmer"
 
 CONFIG_SCHEMA = vol.Schema({
@@ -31,7 +30,6 @@ CONFIG_SCHEMA = vol.Schema({
                         vol.Optional(CONF_TYPE, default=DEFAULT_TYPE): vol.In(['dimmer', 'switch', 'remote']),
                     }
                 ]),
-                vol.Optional(CONF_INTEGRATION): cv.string,
             }
         ]),
     }),

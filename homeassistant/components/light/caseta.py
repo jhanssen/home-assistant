@@ -5,7 +5,7 @@ For more details about this platform, please refer to the documentation
 https://home-assistant.io/components/light.caseta/
 """
 from homeassistant.components.light import (
-    ATTR_BRIGHTNESS, ATTR_TRANSITION, SUPPORT_BRIGHTNESS, SUPPORT_TRANSITION, Light, PLATFORM_SCHEMA)
+    ATTR_BRIGHTNESS, ATTR_TRANSITION, SUPPORT_BRIGHTNESS, SUPPORT_TRANSITION, Light)
 from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST, CONF_TYPE)
 import homeassistant.helpers.config_validation as cv
 
@@ -16,17 +16,6 @@ import asyncio
 import logging
 
 DEFAULT_TYPE = "dimmer"
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [
-        {
-            vol.Required(CONF_ID): cv.positive_int,
-            vol.Required(CONF_NAME): cv.string,
-            vol.Optional(CONF_TYPE, default=DEFAULT_TYPE): vol.In(['dimmer', 'switch']),
-        }
-    ]),
-    vol.Required(CONF_HOST): cv.string,
-})
 
 _LOGGER = logging.getLogger(__name__)
 

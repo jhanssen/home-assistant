@@ -5,7 +5,6 @@ For more details about this platform, please refer to the documentation
 https://home-assistant.io/components/sensor.caseta/
 """
 from homeassistant.helpers.entity import Entity
-from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (CONF_NAME, CONF_ID, CONF_DEVICES, CONF_HOST)
 import homeassistant.helpers.config_validation as cv
 
@@ -14,16 +13,6 @@ from homeassistant.components import caseta
 import voluptuous as vol
 import asyncio
 import logging
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [
-        {
-            vol.Required(CONF_ID): cv.positive_int,
-            vol.Required(CONF_NAME): cv.string,
-        }
-    ]),
-    vol.Required(CONF_HOST): cv.string,
-})
 
 _LOGGER = logging.getLogger(__name__)
 
