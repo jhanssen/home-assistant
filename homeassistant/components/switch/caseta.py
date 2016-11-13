@@ -69,6 +69,9 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     devices = [CasetaSwitch(switch, data) for switch in discovery_info[CONF_DEVICES]]
     data.setDevices(devices)
 
+    for device in devices:
+        yield from device.query()
+
     yield from async_add_devices(devices)
 
     bridge.register(data.readOutput)
@@ -86,6 +89,8 @@ class CasetaSwitch(SwitchDevice):
         self._integration = int(switch['id'])
         self._is_on = False
 
+    @asyncio.coroutine
+    def query(self):
         self._data.caseta.query(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET)
 
     @property
@@ -102,15 +107,17 @@ class CasetaSwitch(SwitchDevice):
         """Return true if switch is on."""
         return self._is_on
 
-    def turn_on(self, **kwargs):
+    @asyncio.coroutine
+    def async_turn_on(self, **kwargs):
         """Instruct the switch to turn on."""
         _LOGGER.info("Writing caseta value: %d %d on", self._integration, caseta.Caseta.Action.SET)
-        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 100)
+        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 100)
 
-    def turn_off(self, **kwargs):
+    @asyncio.coroutine
+    def async_turn_off(self, **kwargs):
         """Instruct the swtich to turn off."""
         _LOGGER.info("Writing caseta value: %d %d off", self._integration, caseta.Caseta.Action.SET)
-        self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
+        yield from self._data.caseta.write(caseta.Caseta.OUTPUT, self._integration, caseta.Caseta.Action.SET, 0)
 
     def _update_state(self, value):
         """Update state."""

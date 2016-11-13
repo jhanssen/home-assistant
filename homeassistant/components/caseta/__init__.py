@@ -150,6 +150,12 @@ class Caseta:
             self._hass.loop.create_task(self._readNext())
 
         @asyncio.coroutine
+        def _ping(self):
+            yield from asyncio.sleep(60)
+            yield from self._casetify.ping()
+            self._hass.loop.create_task(self._ping())
+
+        @asyncio.coroutine
         def open(self):
             _LOGGER.info("Opening caseta for host %s", self._host)
             if self._casetify != None:
@@ -159,16 +165,18 @@ class Caseta:
             yield from self._casetify.open(self._host)
             return True
 
+        @asyncio.coroutine
         def write(self, mode, integration, action, value):
             if self._casetify == None:
                 return False
-            self._casetify.write(mode, integration, action, value)
+            yield from self._casetify.write(mode, integration, action, value)
             return True
 
+        @asyncio.coroutine
         def query(self, mode, integration, action):
             if self._casetify == None:
                 return False
-            self._casetify.query(mode, integration, action)
+            yield from self._casetify.query(mode, integration, action)
             return True
 
         def register(self, callback):
@@ -179,6 +187,7 @@ class Caseta:
             if self._hass == None:
                 self._hass = hass
                 hass.loop.create_task(self._readNext())
+                hass.loop.create_task(self._ping())
 
         @property
         def host(self):
