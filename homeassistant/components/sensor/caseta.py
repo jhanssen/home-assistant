@@ -68,19 +68,7 @@ class CasetaData:
                 _LOGGER.info("Got sensor caseta value: %s %d %d %f", mode, integration, action, value)
                 for device in self._devices:
                     if device.integration == integration:
-                        state = 0
-                        # value 2 = on, 3 = fav, 4 = off
-                        # value 5 = up, 6 = down
-                        if action == 2:
-                            state = 0x1
-                        elif action == 3:
-                            state = 0x2
-                        elif action == 4:
-                            state = 0x4
-                        elif action == 5:
-                            state = 0x8
-                        elif action == 6:
-                            state = 0x10
+                        state = 1 << action - device.minbutton
                         _LOGGER.info("Found device, updating value")
                         if value == caseta.Caseta.Button.DOWN:
                             _LOGGER.info("Found device, updating value, down")
@@ -130,6 +118,11 @@ class CasetaPicoRemote(Entity):
         self._data = data
         self._name = pico['name']
         self._integration = int(pico['id'])
+        self._buttons = pico['buttons']
+        self._minbutton = 100
+        for b in self._buttons:
+            if b < self._minbutton:
+                self._minbutton = b
         self._state = 0
 
     @property
@@ -140,6 +133,10 @@ class CasetaPicoRemote(Entity):
     def name(self):
         """Return the display name of this pico."""
         return self._name
+
+    @property
+    def minbutton(self):
+        return self._minbutton
 
     @property
     def state(self):

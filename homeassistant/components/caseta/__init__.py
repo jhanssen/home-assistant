@@ -63,7 +63,7 @@ def setup(hass, config):
                                 devices.append({CONF_ID: device["ID"],
                                                 CONF_NAME: device["Name"],
                                                 CONF_TYPE: "remote",
-                                                CONF_BUTTONS: device["Buttons"]})
+                                                CONF_BUTTONS: [b["Number"] for b in device["Buttons"]]})
             # patch up integration with devices
             if CONF_DEVICES in bridge:
                 for device in bridge[CONF_DEVICES]:
