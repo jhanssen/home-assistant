@@ -89,7 +89,7 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     devices = [CasetaPicoRemote(pico, data) for pico in discovery_info[CONF_DEVICES]]
     data.setDevices(devices)
 
-    yield from async_add_devices(devices)
+    async_add_devices(devices)
 
     bridge.register(data.readOutput)
     bridge.start(hass)

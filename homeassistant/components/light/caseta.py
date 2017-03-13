@@ -62,7 +62,7 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     for device in devices:
         yield from device.query()
 
-    yield from async_add_devices(devices)
+    async_add_devices(devices)
 
     bridge.register(data.readOutput)
     bridge.start(hass)
